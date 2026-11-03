@@ -2,6 +2,8 @@ process VALIDATE_ASV {
 
     tag "ASV input validation"
 
+    container 'asv-explorer:0.2.0'
+
     publishDir "${params.outdir}", mode: 'copy'
 
     input:
@@ -9,11 +11,15 @@ process VALIDATE_ASV {
     path taxonomy
 
     output:
-    path "validation_preview.txt"
+    path "validation.json"
+    path "sample_summary.tsv"
+    path "feature_summary.tsv"
 
     script:
     """
-    echo "Counts file: ${counts.name}" > validation_preview.txt
-    echo "Taxonomy file: ${taxonomy.name}" >> validation_preview.txt
+    python /app/scripts/validate_asv.py \
+        --counts "${counts}" \
+        --taxonomy "${taxonomy}" \
+        --outdir .
     """
 }

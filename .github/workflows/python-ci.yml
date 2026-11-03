@@ -10,28 +10,101 @@ permissions:
   contents: read
 
 jobs:
+
   tests:
     name: Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
+
     env:
       MPLBACKEND: Agg
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: pyproject.toml
+
       - name: Install project and test dependencies
         run: python -m pip install -e ".[dev]"
-      - name: Run tests
-        run: python -m pytest -q
+
+      - name: Run Python tests
+        run: |
+          python -m pytest -q \
+            --ignore=tests/test_nextflow.py
+
       - name: Exercise installed CLI with example data
         run: |
-          asv-explorer --input data/example_taxonomic_abundance.csv --output-dir "${RUNNER_TEMP}/asv-smoke"
+          asv-explorer \
+            --input data/example_taxonomic_abundance.csv \
+            --output-dir "${RUNNER_TEMP}/asv-smoke"
+
           test -s "${RUNNER_TEMP}/asv-smoke/taxonomic_abundance_summary.csv"
           test -s "${RUNNER_TEMP}/asv-smoke/taxonomic_abundance_donut.png"
+
+  nextflow-integration:
+    name: Nextflow + Docker integration
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install Nextflow
+        env:
+          NXF_VER: "26.10.4"
+        run: |
+          curl -fsSL https://get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+          nextflow -version
+
+      - name: Verify Docker
+        run: docker info
+
+      - name: Build ASV Explorer container
+        run: |
+          docker build \
+            -f docker/Dockerfile \
+            -t asv-explorer:0.2.0 \
+            .
+
+      - name: Install project and test dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Run Nextflow integration test
+        run: |
+          python -m pytest \
+            tests/test_nextflow.py \
+            -v \
+            -rs \
+            -o "strict_markers=true" \
+            -o "strict_config=true"
+
+      - name: Verify integration requirements
+        run: |
+          command -v nextflow
+          command -v docker
+          docker info
+          docker image inspect asv-explorer:0.2.0
+
+      - name: Verify integration test was executed
+        run: |
+          test -f tests/test_nextflow.py
+          docker image inspect asv-explorer:0.2.0 > /dev/null

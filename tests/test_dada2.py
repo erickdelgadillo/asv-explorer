@@ -166,3 +166,69 @@ def test_duplicate_taxonomy_ids(tmp_path):
         match="Duplicated taxonomy ASV identifiers",
     ):
         load_dada2_taxonomy(input_file)
+
+def test_duplicate_sample_columns(tmp_path):
+    """Reject duplicated sample names in the original TSV header."""
+
+    input_file = tmp_path / "duplicate_samples.tsv"
+
+    input_file.write_text(
+        "ASV_ID\tSample_A\tSample_A\n"
+        "ASV_1\t10\t20\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Duplicated column names"):
+        load_dada2_counts(input_file)
+
+
+def test_duplicate_taxonomy_columns(tmp_path):
+    """Reject duplicated taxonomy column names."""
+
+    input_file = tmp_path / "duplicate_taxonomy.tsv"
+
+    input_file.write_text(
+        "ASV_ID\tKingdom\tKingdom\n"
+        "ASV_1\tBacteria\tBacteria\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Duplicated column names"):
+        load_dada2_taxonomy(input_file)
+
+def test_large_integer_precision(tmp_path):
+    """Preserve large integer counts without floating-point rounding."""
+
+    large_count = 9007199254740993
+
+    input_file = tmp_path / "large_counts.tsv"
+
+    input_file.write_text(
+        f"ASV_ID\tSample_A\n"
+        f"ASV_1\t{large_count}\n",
+        encoding="utf-8",
+    )
+
+    result = load_dada2_counts(input_file)
+
+    assert result.loc[0, "Sample_A"] == large_count
+
+
+def test_integer_overflow(tmp_path):
+    """Reject counts exceeding the signed 64-bit integer range."""
+
+    overflow_count = 2**63
+
+    input_file = tmp_path / "overflow.tsv"
+
+    input_file.write_text(
+        f"ASV_ID\tSample_A\n"
+        f"ASV_1\t{overflow_count}\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="ASV counts exceed supported integer range",
+    ):
+        load_dada2_counts(input_file)
