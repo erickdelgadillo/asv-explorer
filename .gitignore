@@ -10,3 +10,12 @@ build/
 results/*.csv
 results/*.png
 !results/.gitkeep
+
+# Nextflow
+.nextflow/
+.nextflow.log*
+work/
+
+# Generated analysis outputs
+results/*
+!results/.gitkeep
