@@ -1,13 +1,19 @@
 # ASV Explorer
 
-A small Python project for exploring and visualizing taxonomic relative abundance.
-It turns a simple abundance table into a validated summary and a publication-ready
-figure. The nested donut shows higher taxonomic groups in the inner ring and specific
-taxa in the outer ring, with collision-reduced labels connected by guide lines.
+ASV Explorer is a Python and Nextflow project for validating,
+exploring, and visualizing taxonomic abundance data.
 
-The current example uses aggregated transcript abundance (TPM) from the INTERES WP1
-dataset. The repository does **not** contain the original 77 MB processed dataset;
-it includes only the aggregated values needed to reproduce the example figure.
+It currently supports two complementary workflows:
+
+- Taxonomic abundance visualization using Python, including
+  nested donut charts with collision-reduced labels.
+- DADA2 ASV count validation using Nextflow DSL2 and Docker,
+  including SILVA taxonomy alignment and quality-control reports.
+
+The visualization example uses aggregated transcript abundance
+(TPM) from the INTERES WP1 dataset. The repository does not
+contain the original 77 MB processed dataset; it includes only
+the aggregated values needed to reproduce the example figure.
 
 ## Quick start
 
@@ -31,6 +37,72 @@ The command creates:
 
 - `results/taxonomic_abundance_summary.csv`
 - `results/taxonomic_abundance_donut.png`
+
+## ASV validation with Nextflow
+
+ASV Explorer v0.2.0 includes a Nextflow DSL2 workflow for validating
+DADA2 ASV count tables and their corresponding taxonomy assignments.
+
+### Requirements
+
+- Nextflow (tested with 26.10.4)
+- Java 21
+- Docker
+
+### Build the container
+
+```bash
+docker build -f docker/Dockerfile -t asv-explorer:0.2.0 .
+```
+
+### Run the workflow
+
+```bash
+nextflow run main.nf \
+  --counts path/to/ASV_table.tsv \
+  --taxonomy path/to/ASV_taxonomy.tsv \
+  --outdir results/validation \
+  -with-docker
+```
+
+The workflow generates:
+
+- `validation.json`: dataset dimensions, read conservation,
+  taxonomy alignment, and input provenance.
+- `sample_summary.tsv`: total reads and observed ASVs per sample.
+- `feature_summary.tsv`: total abundance and sample prevalence
+  per ASV.
+
+### Input requirements
+
+The count table must contain an `ASV_ID` column followed by
+sample columns containing non-negative integer read counts.
+
+The taxonomy table must contain an `ASV_ID` column.
+
+Both tables must contain matching, unique ASV identifiers.
+
+Missing taxonomic classifications are permitted, but missing
+ASV identifiers or unmatched ASVs are rejected.
+
+Zero-count samples are reported without being removed.
+
+The validation workflow does not perform taxonomic filtering,
+normalization, or ecological diversity analysis.
+
+### Testing
+
+Python unit tests:
+
+```bash
+python -m pytest -q --ignore=tests/test_nextflow.py
+```
+
+Nextflow integration test (requires the Docker image):
+
+```bash
+python -m pytest tests/test_nextflow.py -v
+```
 
 ## Input format
 
@@ -58,13 +130,23 @@ asv-explorer \
 
 ## Roadmap: ASV analysis
 
-The next iteration will add an ASV-oriented loader supporting:
+Completed in v0.2.0:
 
-- ASV count/abundance matrices plus a taxonomy table
-- per-sample relative abundance
-- filtering of rare ASVs
-- aggregation by phylum, class, order, family, or genus
-- stacked bar charts alongside the current donut chart
+- DADA2 ASV count table import and validation
+- SILVA taxonomy table import and ASV alignment
+- Detection of zero-count samples
+- Read conservation checks
+- Sample and feature summaries
+- Nextflow DSL2 execution with Docker
+
+Planned:
+
+- Per-sample relative abundance
+- Configurable ASV filtering with read accounting
+- Taxonomic aggregation by rank
+- Stacked taxonomic abundance plots
+- Alpha and beta diversity analysis
+- Support for additional input formats and taxonomic databases
 
 ## Data provenance
 

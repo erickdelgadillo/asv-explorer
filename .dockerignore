@@ -1,0 +1,14 @@
+.git/
+.github/
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+
+.nextflow/
+.nextflow.log*
+work/
+results/
+
+tests/
+data/
