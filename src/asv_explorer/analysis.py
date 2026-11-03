@@ -174,12 +174,18 @@ def plot_nested_donut(
     title: str = "Taxonomic relative abundance",
     min_label_percent: float = 1.0,
 ) -> Path:
-    """Plot two taxonomic rings with collision-free labels on the outer ring."""
+    """Plot two taxonomic rings with collision-reduced labels on the outer ring."""
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Keep each parent's children contiguous in both rings, colors and labels.
+    # Preserve encounter order within and between groups without mutating input.
+    summary = pd.concat(
+        [group for _, group in summary.groupby("parent_taxon", sort=False, observed=True)],
+        ignore_index=True,
+    )
     parent = (
-        summary.groupby("parent_taxon", sort=False, as_index=False)["abundance"]
+        summary.groupby("parent_taxon", sort=False, observed=True, as_index=False)["abundance"]
         .sum()
     )
     parent_percentages = parent["abundance"] / parent["abundance"].sum() * 100
@@ -197,7 +203,7 @@ def plot_nested_donut(
     color_by_parent = dict(zip(parent["parent_taxon"], parent_colors))
 
     child_colors: list[tuple[float, float, float]] = []
-    for parent_name, group in summary.groupby("parent_taxon", sort=False):
+    for parent_name, group in summary.groupby("parent_taxon", sort=False, observed=True):
         base = color_by_parent[parent_name]
         count = len(group)
         positions = np.linspace(0, 1, count, endpoint=False) if count > 1 else [0.25]

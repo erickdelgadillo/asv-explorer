@@ -3,7 +3,7 @@
 A small Python project for exploring and visualizing taxonomic relative abundance.
 It turns a simple abundance table into a validated summary and a publication-ready
 figure. The nested donut shows higher taxonomic groups in the inner ring and specific
-taxa in the outer ring, with collision-free labels connected by guide lines.
+taxa in the outer ring, with collision-reduced labels connected by guide lines.
 
 The current example uses aggregated transcript abundance (TPM) from the INTERES WP1
 dataset. The repository does **not** contain the original 77 MB processed dataset;
