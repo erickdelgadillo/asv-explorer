@@ -94,7 +94,9 @@ def test_nested_donut_aligns_child_wedges_with_parents(
     for child in children:
         angle = math.radians((child.theta1 + child.theta2) / 2)
         anchor = (1.12 * math.cos(angle), 1.12 * math.sin(angle))
-        matches = [a for a in annotations if a.xy == pytest.approx(anchor)]
+        # Some supported NumPy/Matplotlib versions use float32 pie angles;
+        # allow their trigonometric rounding at anchors near zero.
+        matches = [a for a in annotations if a.xy == pytest.approx(anchor, abs=1e-6)]
         assert len(matches) == 1
         taxon = matches[0].get_text().split("  ")[0]
         row = summary.loc[summary["taxon"] == taxon].iloc[0]
